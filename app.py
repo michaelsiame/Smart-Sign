@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import argparse
 import copy
+import os
 import csv
 import itertools
 from collections import Counter, deque
@@ -12,6 +13,9 @@ import numpy as np
 
 from model import KeyPointClassifier, PointHistoryClassifier
 from utils import CvFpsCalc
+# Set the environment variable
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+
 
 
 def get_args():
@@ -52,8 +56,17 @@ def main():
 
     # Camera preparation
     cap = cv.VideoCapture(cap_device)
+    if not cap.isOpened():
+        print(f"Failed to open camera device {cap_device}. Exiting...")
+        exit()
+
     cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
     cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
+
+    # Verify resolution settings
+    actual_width = cap.get(cv.CAP_PROP_FRAME_WIDTH)
+    actual_height = cap.get(cv.CAP_PROP_FRAME_HEIGHT)
+    print(f"Camera resolution set to: {actual_width}x{actual_height}")
 
     # Model load
     mp_hands = mp.solutions.hands
