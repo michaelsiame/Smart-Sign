@@ -136,7 +136,8 @@ def main():
                             pre_processed_point_history_list)
 
                 # Hand sign classification
-                hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
+                hand_sign_id, hand_sign_confidence = keypoint_classifier(
+                    pre_processed_landmark_list, return_confidence=True)
                 if hand_sign_id == 2:  # Point gesture
                     point_history.append(landmark_list[8])
                 else:
@@ -144,10 +145,11 @@ def main():
 
                 # Finger gesture classification
                 finger_gesture_id = 0
+                finger_gesture_confidence = None
                 point_history_len = len(pre_processed_point_history_list)
                 if point_history_len == (history_length * 2):
-                    finger_gesture_id = point_history_classifier(
-                        pre_processed_point_history_list)
+                    finger_gesture_id, finger_gesture_confidence = point_history_classifier(
+                        pre_processed_point_history_list, return_confidence=True)
 
                 # Calculates the gesture IDs in the latest detection
                 finger_gesture_history.append(finger_gesture_id)
@@ -163,6 +165,8 @@ def main():
                     handedness,
                     keypoint_classifier_labels[hand_sign_id],
                     point_history_classifier_labels[most_common_fg_id[0][0]],
+                    hand_sign_confidence,
+                    finger_gesture_confidence,
                 )
         else:
             point_history.append([0, 0])
@@ -488,20 +492,30 @@ def draw_bounding_rect(use_brect, image, brect):
 
 
 def draw_info_text(image, brect, handedness, hand_sign_text,
-                   finger_gesture_text):
+                   finger_gesture_text, hand_sign_confidence=None,
+                   finger_gesture_confidence=None):
     cv.rectangle(image, (brect[0], brect[1]), (brect[2], brect[1] - 22),
                  (0, 0, 0), -1)
 
     info_text = handedness.classification[0].label[0:]
     if hand_sign_text != "":
         info_text = info_text + ':' + hand_sign_text
+        # Add confidence score
+        if hand_sign_confidence is not None:
+            confidence = hand_sign_confidence[hand_sign_confidence.argmax()]
+            info_text = info_text + f' ({confidence:.2f})'
     cv.putText(image, info_text, (brect[0] + 5, brect[1] - 4),
                cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv.LINE_AA)
 
     if finger_gesture_text != "":
-        cv.putText(image, "Finger Gesture:" + finger_gesture_text, (10, 60),
+        gesture_text = "Finger Gesture:" + finger_gesture_text
+        # Add confidence score
+        if finger_gesture_confidence is not None:
+            confidence = finger_gesture_confidence[finger_gesture_confidence.argmax()]
+            gesture_text = gesture_text + f' ({confidence:.2f})'
+        cv.putText(image, gesture_text, (10, 60),
                    cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 4, cv.LINE_AA)
-        cv.putText(image, "Finger Gesture:" + finger_gesture_text, (10, 60),
+        cv.putText(image, gesture_text, (10, 60),
                    cv.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2,
                    cv.LINE_AA)
 

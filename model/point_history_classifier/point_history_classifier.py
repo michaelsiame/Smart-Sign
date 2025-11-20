@@ -25,6 +25,7 @@ class PointHistoryClassifier(object):
     def __call__(
         self,
         point_history,
+        return_confidence=False,
     ):
         input_details_tensor_index = self.input_details[0]['index']
         self.interpreter.set_tensor(
@@ -36,9 +37,12 @@ class PointHistoryClassifier(object):
 
         result = self.interpreter.get_tensor(output_details_tensor_index)
 
-        result_index = np.argmax(np.squeeze(result))
+        result_squeezed = np.squeeze(result)
+        result_index = np.argmax(result_squeezed)
 
-        if np.squeeze(result)[result_index] < self.score_th:
+        if result_squeezed[result_index] < self.score_th:
             result_index = self.invalid_value
 
+        if return_confidence:
+            return result_index, result_squeezed
         return result_index
